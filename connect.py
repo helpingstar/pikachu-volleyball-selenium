@@ -26,6 +26,10 @@ class KeyController:
     def _key_down(self, k: Keys | str):
         self.action_chain.key_down(k).perform()
 
+    def all_key_up(self):
+        for prev_key in self.action_to_key[self.previous_action]:
+            self._key_up(prev_key)
+
     def press(self, action):
         # key_up previous keys
         for prev_key in self.action_to_key[self.previous_action]:
@@ -106,6 +110,12 @@ class Commander:
 
         return observation
 
+    def all_key_up(self):
+        if self.p1_controller is not None:
+            self.p1_controller.all_key_up()
+        if self.p2_controller is not None:
+            self.p2_controller.all_key_up()
+
     def act(self, raw_observation):
         observation = self.process_observation(raw_observation)
         action = self.agent.get_action(observation).to(torch.int)
@@ -119,25 +129,88 @@ class Commander:
             self.p2_controller.press(action.item())
 
 
-def get_html_text_by_id(driver: webdriver.Chrome, id: str):
-    element = driver.find_element(By.ID, id)
-    return element.text
+def get_state_and_raw_observation(driver: webdriver.Chrome):
+    def _get_html_text_by_id(id: str):
+        element = driver.find_element(By.ID, id)
+        return element.text
+
+    state = _get_html_text_by_id("state")
+    raw_observation = _get_html_text_by_id("observation")
+
+    return state, raw_observation
+
+
+class WebController:
+    def __init__(self, driver: webdriver.Chrome, url, setting: dict[str, str | int]) -> None:
+        self.driver = driver
+        self.url = url
+        self.setting = setting
+        self.setting_submenu_btn_id = {key: f"{key}-submenu-btn" for key in self.setting.keys()}
+        self.setting_desired_btn_id = {key: f"{key}-{value}-btn" for key, value in self.setting.items()}
+        # exception, Overwrites existing data.
+        self.setting_desired_btn_id["speed"] = f"{self.setting['speed']}-speed-btn"
+
+    def _get_url(self):
+        self.driver.get(self.url)
+
+    def _click_start_button(self):
+        print("Waiting for the Play Button to be activated.")
+        about_btn = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "about-btn")))
+        about_btn.click()
+
+    def _wait_for_game_object(self):
+        print("Wait for the game to start, (wait for the PikachuVolleyball object to be activated).")
+        element = WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.ID, "state"), "intro"))
+
+    def _setting(self):
+        print("Setting...")
+        # wait for dropdown btn
+        options_btn = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "options-dropdown-btn")))
+        options_btn.click()
+        options_btn.click()
+        for key in self.setting.keys():
+            # click options_btn
+            options_btn.click()
+            # click submenu
+            submenu_btn = driver.find_element(By.ID, self.setting_submenu_btn_id[key])
+            submenu_btn.click()
+            # click setting
+            desired_btn = driver.find_element(By.ID, self.setting_desired_btn_id[key])
+            desired_btn.click()
+
+        print("Setting finish...")
+
+    def initialize(self):
+        self._get_url()
+        self._click_start_button()
+        self._wait_for_game_object()
+        self._setting()
+
+    def get_state_and_raw_observation(self):
+        def _get_html_text_by_id(id: str):
+            element = self.driver.find_element(By.ID, id)
+            return element.text
+
+        state = _get_html_text_by_id("state")
+        raw_observation = _get_html_text_by_id("observation")
+
+        return state, raw_observation
 
 
 if __name__ == "__main__":
+    game_setting = {
+        "graphic": "sharp",  # sharp, soft
+        "bgm": "off",  # on, off
+        "sfx": "off",  # stereo, mono, off
+        "speed": "fast",  # speed, medium, fast
+        "winning-score": 15,  # 5, 10, 15
+        "practice-mode": "off",  # on, off
+    }
     driver: webdriver.Chrome = webdriver.Chrome()
-    driver.get("http://127.0.0.1:8080/en/")
+    url = "http://127.0.0.1:8080/en/"
+    web_controller = WebController(driver, url, game_setting)
 
-    print("Waiting for the Play Button to be activated.")
-    about_btn = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "about-btn")))
-    about_btn.click()
-
-    print("Wait for the game to start, (wait for the PikachuVolleyball object to be activated).")
-    element = WebDriverWait(driver, 10).until(EC.text_to_be_present_in_element((By.ID, "state"), "intro"))
-
-    print("Start the connection.")
-
-    game_element = driver.find_element(By.ID, "game-canvas-container")
+    web_controller.initialize()
 
     print("Select the option and launch the game from the menu")
 
@@ -147,17 +220,17 @@ if __name__ == "__main__":
     )
 
     ai_side = int(ai_side)
-    weight_path = "weights/player_1_pika-zoo_5M.pth"
+    weight_path = "weights/cleanrl_ppo_vec_single_152580.pt"
     commander = Commander(driver, ai_side, weight_path)
 
-    prev_state = get_html_text_by_id(driver, "state")
-    prev_raw_observation = get_html_text_by_id(driver, "observation")
+    state, prev_raw_observation = web_controller.get_state_and_raw_observation()
     with torch.inference_mode():
         while True:
-            state = get_html_text_by_id(driver, "state")
-            raw_observation = get_html_text_by_id(driver, "observation")
+            state, raw_observation = web_controller.get_state_and_raw_observation()
 
-            if (prev_raw_observation != raw_observation) and state == "round":
-                commander.act(raw_observation)
-                prev_state = state
-                prev_raw_observation = raw_observation
+            if state == "round":
+                if prev_raw_observation != raw_observation:
+                    commander.act(raw_observation)
+                    prev_raw_observation = raw_observation
+            else:
+                commander.all_key_up()
