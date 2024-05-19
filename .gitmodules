@@ -1,0 +1,6 @@
+[submodule "pikachu-volleyball-basic"]
+	path = pikachu-volleyball-basic
+	url = https://github.com/helpingstar/pikachu-volleyball-basic.git
+[submodule "pikachu-volleyball-duckll-fork"]
+	path = pikachu-volleyball-duckll-fork
+	url = https://github.com/helpingstar/pikachu-volleyball-duckll-fork.git
