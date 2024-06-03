@@ -12,10 +12,25 @@ if __name__ == "__main__":
         "winning-score": 15,  # 5, 10, 15
         "practice-mode": "off",  # on, off
     }
-    driver: webdriver.Chrome = webdriver.Chrome()
-    url = "http://127.0.0.1:8080/en/"
-    web_controller = WebController(driver, url, game_setting)
 
+    p1_setting = {
+        "weight_path": "weights/cleanrl_ppo_vec_single_152580.pt",
+        "linear_size": 128,
+        "n_layer": 1,
+        "n_action": 18,
+    }
+
+    p2_setting = {
+        "weight_path": "weights/cleanrl_ppo_vec_single_152580.pt",
+        "linear_size": 128,
+        "n_layer": 1,
+        "n_action": 18,
+    }
+
+    url = "http://127.0.0.1:8080/en/"
+
+    driver: webdriver.Chrome = webdriver.Chrome()
+    web_controller = WebController(driver, url, game_setting)
     web_controller.initialize()
 
     print("Select the option and launch the game from the menu")
@@ -26,8 +41,7 @@ if __name__ == "__main__":
     )
 
     ai_side = int(ai_side)
-    weight_path = "weights/cleanrl_ppo_vec_single_152580.pt"
-    commander = Commander(driver, ai_side, weight_path)
+    commander = Commander(driver, ai_side, p1_setting, p2_setting)
 
     state, prev_raw_observation = web_controller.get_state_and_raw_observation()
     with torch.inference_mode():

@@ -37,18 +37,37 @@ class KeyController:
 
 
 class Commander:
-    def __init__(self, driver: webdriver.Chrome, ai_side: int, weight_path: str) -> None:
+    def __init__(
+        self,
+        driver: webdriver.Chrome,
+        ai_side: int,
+        p1_setting: dict[str : str | int],
+        p2_setting: dict[str : str | int],
+    ) -> None:
+        # ai_side
         self.p1_is_ai = ai_side & 1 > 0
         self.p2_is_ai = ai_side & 2 > 0
+        # setting
+        self.p1_setting = p1_setting
+        self.p2_setting = p2_setting
+
+        self.p1_13map = (0, 1, 2, 3, 4, 6, 7, 10, 11, 12, 13, 14, 16)
+        self.p2_13map = (0, 1, 2, 4, 3, 7, 6, 10, 12, 11, 13, 15, 17)
 
         self.p1_controller = KeyController(driver, 1) if self.p1_is_ai else None
         self.p2_controller = KeyController(driver, 2) if self.p2_is_ai else None
         self.prev_p1_score = 0
         self.prev_p2_score = 0
         # get agent
-        self.agent = Agent()
-        self.agent.load_state_dict(torch.load(weight_path))
-        self.agent.eval()
+        if self.p1_is_ai:
+            self.p1_agent = Agent(self.p1_setting)
+            self.p1_agent.load_state_dict(torch.load(self.p1_setting["weight_path"]))
+            self.p1_agent.eval()
+
+        if self.p2_is_ai:
+            self.p2_agent = Agent(self.p2_setting)
+            self.p2_agent.load_state_dict(torch.load(self.p2_setting["weight_path"]))
+            self.p2_agent.eval()
 
     def reset(self):
         self.prev_p1_score = 0
@@ -71,6 +90,9 @@ class Commander:
         if p2_state < 5:
             p2_state_arr[p2_state] = 1
 
+        p1_observation = None
+        p2_observation = None
+
         if self.p1_is_ai:
             p1_observation = sum(
                 [
@@ -85,6 +107,7 @@ class Commander:
                 [],
             )
             p1_observation = torch.Tensor(p1_observation)
+            p1_observation = (p1_observation - OBS_LOW) / (OBS_HIGH - OBS_LOW)
         if self.p2_is_ai:
             p2_observation = sum(
                 [
@@ -99,15 +122,7 @@ class Commander:
                 [],
             )
             p2_observation = torch.Tensor(p2_observation)
-
-        if self.p1_is_ai and self.p2_is_ai:
-            observation = torch.stack((p1_observation, p2_observation))
-        elif self.p1_is_ai:
-            observation = p1_observation
-        elif self.p2_is_ai:
-            observation = p2_observation
-
-        observation = (observation - OBS_LOW) / (OBS_HIGH - OBS_LOW)
+            p2_observation = (p2_observation - OBS_LOW) / (OBS_HIGH - OBS_LOW)
 
         p1_score, p2_score = raw_observation_arr[27], raw_observation_arr[28]
         rewards = [0, 0]
@@ -120,7 +135,7 @@ class Commander:
             rewards[1] = 1
             self.prev_p2_score = p2_score
 
-        return observation, rewards
+        return p1_observation, p2_observation, rewards
 
     def all_key_up(self):
         if self.p1_controller is not None:
@@ -129,16 +144,21 @@ class Commander:
             self.p2_controller.all_key_up()
 
     def act(self, raw_observation):
-        observation, _ = self.process_observation(raw_observation)
-        action = self.agent.get_action(observation).to(torch.int)
+        p1_observation, p2_observation, _ = self.process_observation(raw_observation)
 
-        if self.p1_is_ai and self.p2_is_ai:
-            self.p1_controller.press(action[0].item())
-            self.p2_controller.press(action[1].item())
-        elif self.p1_is_ai:
-            self.p1_controller.press(action.item())
-        elif self.p2_is_ai:
-            self.p2_controller.press(action.item())
+        if self.p1_is_ai:
+            p1_action = self.p1_agent.get_action(p1_observation).to(torch.int).item()
+            if self.p1_setting["n_action"] == 13:
+                p1_action = self.p1_13map[p1_action]
+        if self.p2_is_ai:
+            if self.p2_setting["n_action"] == 13:
+                p2_action = self.p1_13map[p2_action]
+            p2_action = self.p2_agent.get_action(p2_observation).to(torch.int).item()
+
+        if self.p1_is_ai:
+            self.p1_controller.press(p1_action)
+        if self.p2_is_ai:
+            self.p2_controller.press(p2_action)
 
 
 class WebController:
