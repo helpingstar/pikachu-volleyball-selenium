@@ -14,7 +14,7 @@ if __name__ == "__main__":
     }
 
     p1_setting = {
-        "weight_path": "weights/pika-zoo__ppo_vec_one_network__1__1717994997/cleanrl_ppo_vec_one_network_151311.pt",
+        "weight_path": "weights\pika-zoo__ppo_vec_one_network__1__1717994997\cleanrl_ppo_vec_one_network_162700.pt",
         "n_linear": 128,
         "n_layer": 2,
         "n_action": 18,
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     }
 
     p2_setting = {
-        "weight_path": "weights/pika-zoo__ppo_vec_one_network__1__1717994997/cleanrl_ppo_vec_one_network_151311.pt",
+        "weight_path": "weights\pika-zoo__ppo_vec_one_network__1__1717994997\cleanrl_ppo_vec_one_network_162700.pt",
         "n_linear": 128,
         "n_layer": 2,
         "n_action": 18,
