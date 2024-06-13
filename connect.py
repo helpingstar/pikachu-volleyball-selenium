@@ -5,7 +5,7 @@ from utils import WebController, Commander
 
 if __name__ == "__main__":
     game_setting = {
-        "graphic": "sharp",  # sharp, soft
+        # "graphic": "sharp",  # sharp, soft
         "bgm": "off",  # on, off
         "sfx": "off",  # stereo, mono, off
         "speed": "fast",  # speed, medium, fast
@@ -14,17 +14,19 @@ if __name__ == "__main__":
     }
 
     p1_setting = {
-        "weight_path": "weights/cleanrl_ppo_vec_single_152580.pt",
-        "linear_size": 128,
-        "n_layer": 1,
+        "weight_path": "weights/pika-zoo__ppo_vec_one_network__1__1717994997/cleanrl_ppo_vec_one_network_151311.pt",
+        "n_linear": 128,
+        "n_layer": 2,
         "n_action": 18,
+        "infer": "prob",
     }
 
     p2_setting = {
-        "weight_path": "weights/cleanrl_ppo_vec_single_152580.pt",
-        "linear_size": 128,
-        "n_layer": 1,
+        "weight_path": "weights/pika-zoo__ppo_vec_one_network__1__1717994997/cleanrl_ppo_vec_one_network_151311.pt",
+        "n_linear": 128,
+        "n_layer": 2,
         "n_action": 18,
+        "infer": "prob",
     }
 
     url = "http://127.0.0.1:8080/en/"
