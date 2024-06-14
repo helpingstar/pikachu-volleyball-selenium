@@ -1,7 +1,7 @@
 from selenium import webdriver
 import torch
 from utils import WebController, Commander
-
+import os
 
 if __name__ == "__main__":
     game_setting = {
@@ -14,7 +14,11 @@ if __name__ == "__main__":
     }
 
     p1_setting = {
-        "weight_path": "weights\pika-zoo__ppo_vec_one_network__1__1717994997\cleanrl_ppo_vec_one_network_162700.pt",
+        "weight_path": os.path.join(
+            "weights",
+            "pika-zoo__ppo_vec_one_network__1__1717994997",
+            "cleanrl_ppo_vec_one_network_162700.pt",
+        ),
         "n_linear": 128,
         "n_layer": 2,
         "n_action": 18,
@@ -22,7 +26,11 @@ if __name__ == "__main__":
     }
 
     p2_setting = {
-        "weight_path": "weights\pika-zoo__ppo_vec_one_network__1__1717994997\cleanrl_ppo_vec_one_network_162700.pt",
+        "weight_path": os.path.join(
+            "weights",
+            "pika-zoo__ppo_vec_one_network__1__1717994997",
+            "cleanrl_ppo_vec_one_network_162700.pt",
+        ),
         "n_linear": 128,
         "n_layer": 2,
         "n_action": 18,
