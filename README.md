@@ -2,6 +2,8 @@
 
 ## Start
 
+If the computer's processing speed is slow, it can degrade the agent's performance. Therefore, it is recommended to use a computer with good performance.
+
 ### Preparation
 
 ```cmd
